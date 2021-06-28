@@ -130,17 +130,18 @@ ui <- fluidPage(theme = shinytheme("cyborg"),
                       placeholder = ""),
                     uiOutput("wavlistdropdown"),
                     conditionalPanel("output.wavlistdropdown",
+                                     actionButton("generatePlot",
+                                                  "Plot & play this file",
+                                                  width = 300),
                                      htmlOutput("wavplayer"),
                                      tableOutput("wavSummary"),
-                                     actionButton("generatePlot",
-                                                  "Plot this wav file",
-                                                  width = 300),
                                      hr(),
                                      h3("Macro mode"),
                                      radioButtons("macroPresets",
                                                   "Macro Presets:",
                                                   c("Determine pitch from wave file (SFZ)" = "a",
-                                                    "Determine pitch from file name (SFZ)" = "b")
+                                                    "Determine pitch from file name (SFZ)" = "b",
+                                                    "Simple Percussion mapping (SFZ)" = "c")
                                      ),
                                      sliderInput("ampEnvAttackMacro",
                                                  "Amp envelope - Attack (s):",
@@ -363,7 +364,12 @@ server <- function(input, output) {
     output$wavplayer <- renderUI({
       #tags$audio(src = input$loadWavFile$name, type = "audio/wav", autoplay = NA, controls = NA)
       print(paste0("Path to wav file to play: ",input$uploadedWavs))
-      tags$audio(src = input$uploadedWavs, type = "audio/wav", autoplay = NA, controls = NA)
+      #tags$audio(src = paste0(input$uploadedWavs), type = "audio/wav", autoplay = NA, controls = NA)
+      
+      z <- HTML(paste0('<audio controls autoplay>
+                       <source src="',input$uploadedWavs,'" type="audio/wav">
+                       Your browser does not support the audio element. </audio>'))
+      z
     })
   })
   
@@ -702,7 +708,8 @@ server <- function(input, output) {
         sfzzContent[i] <- sfzzMacro
       }
       
-    }else{
+    }
+    if (input$macroPresets=='b'){
       for (i in 1:length(input$loadWavFile$name)){
         f <- input$loadWavFile$name[i]
         print(f)
@@ -726,6 +733,30 @@ server <- function(input, output) {
       }
       
     }
+    if (input$macroPresets=='c'){
+      note.number <- 36
+      for (i in 1:length(input$loadWavFile$name)){
+        sfzzMacro <- paste0("//",i,"\n",
+                            "<region>",
+                            " sample=../samples/",input$loadWavFile$name[i],
+                            " lokey=",note.number,
+                            " hikey=",note.number,
+                            " pitch_keycenter=",note.number,
+                            " seq_length=1"," seq_position=1",
+                            " lovel=0"," hivel=127","\n"
+        )
+        sfzzContent[i] <- sfzzMacro
+        final.df[nrow(final.df)+1,1] <- input$loadWavFile$name[i]
+        final.df[nrow(final.df),2] <- note.number
+        final.df[nrow(final.df),3] <- '-'
+        final.df[nrow(final.df),4] <- '-'
+        final.df[nrow(final.df),5] <- '-'
+        note.number <- note.number + 1
+      }
+      
+    }
+    
+    
     colnames(final.df) <- c("Input File",
                             "Note Number",
                             "Note Name",
