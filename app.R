@@ -289,9 +289,11 @@ ui <- fluidPage(theme = shinytheme("cyborg"),
                              # downloadButton("downloadRightOpCode",
                              #                label = "Download sfz file")
                       )#rigt column end
-                    )
+                    )#fluidRow end
                     ,
                     hr(),
+                    HTML("<h3>Mapping Preview</h3>"),
+                    tableOutput("mappingDFpreview"),
                     hr()
                   )
                 )
@@ -929,35 +931,45 @@ server <- function(input, output) {
     noteMapping$mapping[1] <- input$HighLowNotes[1]
     noteMapping$mapping[3] <- input$HighLowNotes[2]
     
-    ####to do ####
+    
     sfzzMacroHeader <- paste0(sfz_header,"\n",
                               "<group>","\n",
                               "ampeg_attack=",input$ampEnvAttackMacro,"\n",
                               "ampeg_release=",input$ampEnvReleaseMacro,"\n"
     )
 
-    final.df[nrow(final.df)+1,1] <- f
-    final.df[nrow(final.df),2] <- noteMapping$mapping[2]
-    final.df[nrow(final.df),3] <- '-'
-    final.df[nrow(final.df),4] <- '-'
-    final.df[nrow(final.df),5] <- '-'
-
-    sfzzMacro <- paste0("//",noteMapping$mapping[2],"\n",
-                        "<region>",
-                        " sample=../samples/",input$uploadedWavs3,
-                        " lokey=",noteMapping$mapping[1],
-                        " hikey=",noteMapping$mapping[3],
-                        " pitch_keycenter=",noteMapping$mapping[2],
-                        " seq_length=1"," seq_position=1",
-                        " lovel=0"," hivel=127","\n"
-    )
-    sfzzContent[1] <- sfzzMacro
-    sfzzContentUnlist <- unlist(sfzzContent)
+    
+    ####to do ####
+    ####find index of wav to update
+    editWav.index <- grep(input$uploadedWavs3,sfzobject$df[,1])
+    print(paste0("Edit index: ",editWav.index))
+    
+    sfzobject$df[editWav.index,1] <- input$uploadedWavs3
+    sfzobject$df[editWav.index,2] <- noteMapping$mapping[2]
+    sfzobject$df[editWav.index,3] <- noteMapping$mapping[1]
+    sfzobject$df[editWav.index,4] <- noteMapping$mapping[3]
+    
+    print(sfzobject$df)
+    
+    #iterate through df creating sfz object
+    for (i in 1:nrow(sfzobject$df)){
+      sfzzMacro <- paste0("//",sfzobject$df[i,2],"\n",
+                          "<region>",
+                          " sample=../samples/",sfzobject$df[i,1],
+                          " lokey=",sfzobject$df[i,3],
+                          " hikey=",sfzobject$df[i,4],
+                          " pitch_keycenter=",sfzobject$df[i,2],
+                          " seq_length=1"," seq_position=1",
+                          " lovel=0"," hivel=127","\n"
+      )
+      sfzobject$sfz[i] <- sfzzMacro
+    }
+    
+    sfzzContentUnlist <- unlist(sfzobject$sfz)
     sfzzContentUnlist <- sort(sfzzContentUnlist)
     sfzzFinal <- c(sfzzMacroHeader,sfzzContentUnlist)
-    
+    sfzobject$sfz[[1]] <- sfzzFinal
   })
-  
   
   
   observeEvent(input$macromodalClose,{
@@ -965,7 +977,20 @@ server <- function(input, output) {
   })
   
   observeEvent(input$viewFinal,{
-    
+    showModal(modalDialog(
+      title = "Finalexport",
+      renderTable(sfzobject$df),
+      hr(),
+      verbatimTextOutput("macroSFZoutput"),
+      downloadButton("downloadMacroSFZ",
+                     label = "Download sfz file"),
+      size = "l",
+      easyClose = TRUE,
+      footer = tagList(
+        actionButton("macromodalClose", "Close")
+      )
+    )
+    )
   })
   
   output$downloadMacroSFZ <- downloadHandler(
@@ -977,6 +1002,10 @@ server <- function(input, output) {
       writeLines(sfzoutput$outtext[[3]], file)
     }
   )
+  
+  output$mappingDFpreview <- renderTable({
+    sfzobject$df
+  })
   
   ####batch bit conversion####
   output$batchConvertDropdown <- renderUI({
