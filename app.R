@@ -13,7 +13,18 @@ print(Sys.time())
 colours <- c("brown1","brown3","coral3")
 bg <- 'burlywood2'
 
-freq.df <- read.csv("resources/freq_table.txt",header = TRUE,stringsAsFactors = FALSE)
+print(getwd())
+print(paste0(getwd(),"/resources/freq_table.txt"))
+fe <- file.exists(paste0(getwd(),"/resources/freq_table.txt"))
+print(fe)
+freq.df <- read.csv(paste0(getwd(),"/resources/freq_table.txt"),
+                    header = TRUE,
+                    stringsAsFactors = FALSE)
+resource.files <- list.files(paste0(getwd(),"/resources"))
+print(resource.files)
+print("freq.df preview")
+print(head(freq.df,n=5))
+
 freq.df$FreqInt <- round(freq.df$Freq,0)
 freq.df$FreqUpper <- round(((freq.df$FreqInt/100)*4)+freq.df$FreqInt,0)
 freq.df$FreqLower <- round(freq.df$FreqInt-((freq.df$FreqInt/100)*4),0)
@@ -88,10 +99,19 @@ getNoteMacro <- function(wavv,inputWav){
 ##function to search freq.df
 search.freq <- function(wavname){
   wavfn.index <- regexpr("[ABCDEFG]\\d",wavname)
-  wav.note <- substr(wavname,wavfn.index[[1]],wavfn.index[[1]]+1)
+  wav.note <- regmatches(wavname,wavfn.index)
+  print(paste0("sanitizer note name: ",wav.note))
+  #wav.note <- substr(wavname,wavfn.index[[1]],wavfn.index[[1]]+1)
   wav.note.index <- grep(wav.note,freq.df$NoteName)
   wav.number <- freq.df[wav.note.index,1]
   wav.number
+}
+
+##function to alter bit depth
+bitDepth <- function(wav,depth){
+  testwav <- normalize(wav,unit = depth)
+  print(testwav)
+  return(testwav)
 }
 
 #####functions END #####
@@ -139,8 +159,7 @@ ui <- fluidPage(theme = shinytheme("cyborg"),
                                      h3("Macro mode"),
                                      radioButtons("macroPresets",
                                                   "Macro Presets:",
-                                                  c("Determine pitch from wave file (SFZ)" = "a",
-                                                    "Determine pitch from file name (SFZ)" = "b",
+                                                  c("Determine pitch from file name (SFZ)" = "b",
                                                     "Simple Percussion mapping (SFZ)" = "c")
                                      ),
                                      sliderInput("ampEnvAttackMacro",
@@ -154,7 +173,24 @@ ui <- fluidPage(theme = shinytheme("cyborg"),
                                      actionButton("macroGo",
                                                   "Automap all files",
                                                   width = 300),
+                                     hr(),
+                                     actionButton("manualEditGo",
+                                                  "Manually edit note mapping",
+                                                  width = 300),
+                                     hr(),
+                                     actionButton("viewFinal",
+                                                  "View and Save SFZ file",
+                                                  width = 300),
                                      hr()
+                    ),
+                    hr(),
+                    conditionalPanel("output.wavlistdropdown",
+                                     h3("Bit-depth conversion"),
+                                     uiOutput("batchConvertDropdown"),
+                                     uiOutput("bitDepth"),
+                                     actionButton("batchBitConvert",
+                                                  "Convert bit depth",
+                                                  width = 300)
                     )
                   ),
                   
@@ -173,40 +209,40 @@ ui <- fluidPage(theme = shinytheme("cyborg"),
                              downloadButton("downloadLeft",
                                             label = "Download"),
                              hr(),
-                             actionButton("getffLeft",
-                                          "Get Fundamental Frequency",
-                                          width = 300),
-                             br(),
-                             plotOutput("ffLeft"),
-                             sliderInput("ffLeftSlider",
-                                         "x axis:",
-                                         min = 1,
-                                         max = 20000,
-                                         value = c(100,5000)),
-                             tableOutput("ffTableStatsLeft"),
-                             tableOutput("noteTableLeft"),
-                             h3("Pitch mapping"),
-                             radioButtons("pitchPresets",
-                                          "Pitch Presets:",
-                                          c("1 pitch per note" = "a",
-                                            "+/- 1 octave" = "b",
-                                            "Full keyboard map" = "c")),
-                             uiOutput("keycentersliderLeft"),
-                             uiOutput("lokeysliderLeft"),
-                             uiOutput("highkeysliderLeft"),
-                             h3("Amp Envelope"),
-                             uiOutput("AmpEnvAttackLeft"),
-                             uiOutput("AmpEnvReleaseLeft"),
-                             uiOutput("opcodeActionLeft"),
-                             tags$div(style="height:200px;", verbatimTextOutput("opcodeViewLeft")),
-                             textInput("instrumentNameLeft",
-                                       "Instrument Name",
-                                       value = "",
-                                       width = 300,
-                                       placeholder = "sample instrument"),
-                             downloadButton("downloadLeftOpCode",
-                                            label = "Download sfz file")
-                             
+                             # actionButton("getffLeft",
+                             #              "Get Fundamental Frequency",
+                             #              width = 300),
+                             # br(),
+                             # plotOutput("ffLeft"),
+                             # sliderInput("ffLeftSlider",
+                             #             "x axis:",
+                             #             min = 1,
+                             #             max = 20000,
+                             #             value = c(100,5000)),
+                             # tableOutput("ffTableStatsLeft"),
+                             # tableOutput("noteTableLeft"),
+                             # h3("Pitch mapping"),
+                             # radioButtons("pitchPresets",
+                             #              "Pitch Presets:",
+                             #              c("1 pitch per note" = "a",
+                             #                "+/- 1 octave" = "b",
+                             #                "Full keyboard map" = "c")),
+                             # uiOutput("keycentersliderLeft"),
+                             # uiOutput("lokeysliderLeft"),
+                             # uiOutput("highkeysliderLeft"),
+                             # h3("Amp Envelope"),
+                             # uiOutput("AmpEnvAttackLeft"),
+                             # uiOutput("AmpEnvReleaseLeft"),
+                             # uiOutput("opcodeActionLeft"),
+                             # tags$div(style="height:200px;", verbatimTextOutput("opcodeViewLeft")),
+                             # textInput("instrumentNameLeft",
+                             #           "Instrument Name",
+                             #           value = "",
+                             #           width = 300,
+                             #           placeholder = "sample instrument"),
+                             # downloadButton("downloadLeftOpCode",
+                             #                label = "Download sfz file")
+                             # 
                       ),
                       column(6,
                              br(),
@@ -219,40 +255,40 @@ ui <- fluidPage(theme = shinytheme("cyborg"),
                              downloadButton("downloadRight",
                                             label = "Download"),
                              hr(),
-                             actionButton("getffRight",
-                                          "Get Fundamental Frequency",
-                                          width = 300),
-                             br(),
-                             plotOutput("ffRight"),
-                             sliderInput("ffRightSlider",
-                                         "x axis:",
-                                         min = 1,
-                                         max = 20000,
-                                         value = c(100,5000)),
-                             tableOutput("ffTableStatsRight"),
-                             tableOutput("noteTableRight"),
-                             h3("Pitch mapping"),
-                             radioButtons("pitchPresetsRight",
-                                          "Pitch Presets:",
-                                          c("1 pitch per note" = "a",
-                                            "+/- 1 octave" = "b",
-                                            "Full keyboard map" = "c")),
-                             uiOutput("keycentersliderRight"),
-                             uiOutput("lokeysliderRight"),
-                             uiOutput("highkeysliderRight"),
-                             h3("Amp Envelope"),
-                             uiOutput("AmpEnvAttackRight"),
-                             uiOutput("AmpEnvReleaseRight"),
-                             uiOutput("opcodeActionRight"),
-                             tags$div(style="height:200px;", verbatimTextOutput("opcodeViewRight")),
-                             textInput("instrumentNameRight",
-                                       "Instrument Name",
-                                       value = "",
-                                       width = 300,
-                                       placeholder = "sample instrument"),
-                             downloadButton("downloadRightOpCode",
-                                            label = "Download sfz file")
-                      )
+                             # actionButton("getffRight",
+                             #              "Get Fundamental Frequency",
+                             #              width = 300),
+                             # br(),
+                             # plotOutput("ffRight"),
+                             # sliderInput("ffRightSlider",
+                             #             "x axis:",
+                             #             min = 1,
+                             #             max = 20000,
+                             #             value = c(100,5000)),
+                             # tableOutput("ffTableStatsRight"),
+                             # tableOutput("noteTableRight"),
+                             # h3("Pitch mapping"),
+                             # radioButtons("pitchPresetsRight",
+                             #              "Pitch Presets:",
+                             #              c("1 pitch per note" = "a",
+                             #                "+/- 1 octave" = "b",
+                             #                "Full keyboard map" = "c")),
+                             # uiOutput("keycentersliderRight"),
+                             # uiOutput("lokeysliderRight"),
+                             # uiOutput("highkeysliderRight"),
+                             # h3("Amp Envelope"),
+                             # uiOutput("AmpEnvAttackRight"),
+                             # uiOutput("AmpEnvReleaseRight"),
+                             # uiOutput("opcodeActionRight"),
+                             # tags$div(style="height:200px;", verbatimTextOutput("opcodeViewRight")),
+                             # textInput("instrumentNameRight",
+                             #           "Instrument Name",
+                             #           value = "",
+                             #           width = 300,
+                             #           placeholder = "sample instrument"),
+                             # downloadButton("downloadRightOpCode",
+                             #                label = "Download sfz file")
+                      )#rigt column end
                     )
                     ,
                     hr(),
@@ -264,9 +300,21 @@ ui <- fluidPage(theme = shinytheme("cyborg"),
 # Define server logic required to draw a histogram
 server <- function(input, output) {
   
+  #### ReactiveValues ####
   allWavs <- reactiveValues()
   allWavs$df <- data.frame()
   allWavs$summary <- data.frame()
+  
+  noteMapping <- reactiveValues()
+  noteMapping$mapping <- vector()
+  #index 1 = low note
+  #index 2 = root
+  #index 3 = high note
+  
+  sfzobject <- reactiveValues()
+  sfzobject$sfz <- list()
+  sfzobject$df <- data.frame(matrix(ncol = 4, nrow = 0))
+  sfzobject$sfzvector <- vector()
   
   # observeEvent(input$uploadWavs,{
   #     #wd <- choose.dir()
@@ -412,278 +460,273 @@ server <- function(input, output) {
     }
   )
   
-  sfzoutput <- reactiveValues()
-  sfzoutput$outtext <- list()
-  ##slot 1 = left
-  ##slot 2 = right
+  
   
   ##fundamental frequency left
-  observeEvent(input$getffLeft,{
-    periodLeft <- periodogram(currentWav$wav[[2]],
-                              width = 256)
-    ff <- FF(periodLeft)
-    
-    output$ffLeft <- renderPlot({
-      par(bg = bg)
-      plot(periodLeft,
-           col = colours[3],
-           main = paste0(input$uploadedWavs,"-left-Frequencies"),
-           xlim = input$ffLeftSlider)
-    })
-    
-    output$ffTableStatsLeft <- renderTable({
-      lff <- ffStats(ff)
-      lff
-    })
-    
-    no <- getNote(ff,input$uploadedWavs)
-    
-    
-    output$noteTableLeft <- renderTable({
-      no
-    })
-    
-    output$keycentersliderLeft <- renderUI({
-      sliderInput("keycenterLeft",
-                  "Centre key:",
-                  min = 21, max = 127,
-                  value = no[3,2], step = 1)
-    })
-    
-    output$keycentersliderLeft <- renderUI({
-      sliderInput("keycenterLeft",
-                  "Centre key:",
-                  min = 21, max = 127,
-                  value = no[3,2], step = 1)
-    })
-    
-    output$lokeysliderLeft <- renderUI({
-      lk <- as.integer(no[3,2])
-      
-      if (input$pitchPresets == "b"){
-        lk <- lk-12
-        if (lk < 21){
-          lk <- 21
-        }
-      }
-      
-      if (input$pitchPresets == "c"){
-        lk <- 21
-      }
-      sliderInput("lokeyLeft",
-                  "Low key:",
-                  min = 21, max = 127,
-                  value = lk, step = 1)
-      
-    })
-    
-    output$highkeysliderLeft <- renderUI({
-      hk <- as.integer(no[3,2])
-      
-      if (input$pitchPresets == "b"){
-        hk <- hk+12
-        if (hk > 127){
-          hk <- 127
-        }
-      }
-      if (input$pitchPresets == "c"){
-        hk <- 127
-      }
-      
-      sliderInput("highkeyLeft",
-                  "High key:",
-                  min = 21, max = 127,
-                  value = hk, step = 1)
-    })
-    
-    output$AmpEnvAttackLeft <- renderUI({
-      sliderInput("ampEnvAttackLeft",
-                  "Amp envelope - Attack (s):",
-                  min = 0, max = 5,
-                  value = 0, step = 0.5)
-    })
-    
-    output$AmpEnvReleaseLeft <- renderUI({
-      sliderInput("ampEnvReleaseLeft",
-                  "Amp envelope - Release (s):",
-                  min = 0, max = 5,
-                  value = 0, step = 0.5)
-    })
-    
-    output$opcodeActionLeft <- renderUI({
-      actionButton("generateOpcodesLeft",
-                   "Generate Op Codes",
-                   width = 300)
-    })
-    
-    observeEvent(input$generateOpcodesLeft,{
-      output$opcodeViewLeft <- renderText({
-        
-        sfz <- paste0(sfz_header,"\n",
-                      "<group>","\n",
-                      "ampeg_attack=",input$ampEnvAttackLeft,"\n",
-                      "ampeg_release=",input$ampEnvReleaseLeft,"\n",
-                      "<region>",
-                      " sample=samples/",input$uploadedWavs,
-                      " lokey=",input$lokeyLeft,
-                      " hikey=",input$highkeyLeft,
-                      " pitch_keycenter=",input$keycenterLeft,
-                      " seq_length=1"," seq_position=1",
-                      " lovel=0"," hivel=127"
-        )
-        sfzoutput$outtext[[1]] <- sfz
-        sfz
-      })
-    })
-    
-    
-  })
+  # observeEvent(input$getffLeft,{
+  #   periodLeft <- periodogram(currentWav$wav[[2]],
+  #                             width = 256)
+  #   ff <- FF(periodLeft)
+  #   
+  #   output$ffLeft <- renderPlot({
+  #     par(bg = bg)
+  #     plot(periodLeft,
+  #          col = colours[3],
+  #          main = paste0(input$uploadedWavs,"-left-Frequencies"),
+  #          xlim = input$ffLeftSlider)
+  #   })
+  #   
+  #   output$ffTableStatsLeft <- renderTable({
+  #     lff <- ffStats(ff)
+  #     lff
+  #   })
+  #   
+  #   no <- getNote(ff,input$uploadedWavs)
+  #   
+  #   
+  #   output$noteTableLeft <- renderTable({
+  #     no
+  #   })
+  #   
+  #   output$keycentersliderLeft <- renderUI({
+  #     sliderInput("keycenterLeft",
+  #                 "Centre key:",
+  #                 min = 21, max = 127,
+  #                 value = no[3,2], step = 1)
+  #   })
+  #   
+  #   output$keycentersliderLeft <- renderUI({
+  #     sliderInput("keycenterLeft",
+  #                 "Centre key:",
+  #                 min = 21, max = 127,
+  #                 value = no[3,2], step = 1)
+  #   })
+  #   
+  #   output$lokeysliderLeft <- renderUI({
+  #     lk <- as.integer(no[3,2])
+  #     
+  #     if (input$pitchPresets == "b"){
+  #       lk <- lk-12
+  #       if (lk < 21){
+  #         lk <- 21
+  #       }
+  #     }
+  #     
+  #     if (input$pitchPresets == "c"){
+  #       lk <- 21
+  #     }
+  #     sliderInput("lokeyLeft",
+  #                 "Low key:",
+  #                 min = 21, max = 127,
+  #                 value = lk, step = 1)
+  #     
+  #   })
+  #   
+  #   output$highkeysliderLeft <- renderUI({
+  #     hk <- as.integer(no[3,2])
+  #     
+  #     if (input$pitchPresets == "b"){
+  #       hk <- hk+12
+  #       if (hk > 127){
+  #         hk <- 127
+  #       }
+  #     }
+  #     if (input$pitchPresets == "c"){
+  #       hk <- 127
+  #     }
+  #     
+  #     sliderInput("highkeyLeft",
+  #                 "High key:",
+  #                 min = 21, max = 127,
+  #                 value = hk, step = 1)
+  #   })
+  #   
+  #   output$AmpEnvAttackLeft <- renderUI({
+  #     sliderInput("ampEnvAttackLeft",
+  #                 "Amp envelope - Attack (s):",
+  #                 min = 0, max = 5,
+  #                 value = 0, step = 0.5)
+  #   })
+  #   
+  #   output$AmpEnvReleaseLeft <- renderUI({
+  #     sliderInput("ampEnvReleaseLeft",
+  #                 "Amp envelope - Release (s):",
+  #                 min = 0, max = 5,
+  #                 value = 0, step = 0.5)
+  #   })
+  #   
+  #   output$opcodeActionLeft <- renderUI({
+  #     actionButton("generateOpcodesLeft",
+  #                  "Generate Op Codes",
+  #                  width = 300)
+  #   })
+  #   
+  #   observeEvent(input$generateOpcodesLeft,{
+  #     output$opcodeViewLeft <- renderText({
+  #       
+  #       sfz <- paste0(sfz_header,"\n",
+  #                     "<group>","\n",
+  #                     "ampeg_attack=",input$ampEnvAttackLeft,"\n",
+  #                     "ampeg_release=",input$ampEnvReleaseLeft,"\n",
+  #                     "<region>",
+  #                     " sample=samples/",input$uploadedWavs,
+  #                     " lokey=",input$lokeyLeft,
+  #                     " hikey=",input$highkeyLeft,
+  #                     " pitch_keycenter=",input$keycenterLeft,
+  #                     " seq_length=1"," seq_position=1",
+  #                     " lovel=0"," hivel=127"
+  #       )
+  #       sfzoutput$outtext[[1]] <- sfz
+  #       sfz
+  #     })
+  #   })
+  #   
+  #   
+  # })
   
-  ##fundamental frequency right
-  observeEvent(input$getffRight,{
-    periodRight <- periodogram(currentWav$wav[[3]],
-                               width = 256)
-    ff <- FF(periodRight)
-    
-    output$ffRight <- renderPlot({
-      par(bg = bg)
-      plot(periodRight,
-           col = colours[3],
-           main = paste0(input$uploadedWavs,"-right-Frequencies"),
-           xlim = input$ffRightSlider)
-    })
-    
-    output$ffTableStatsRight <- renderTable({
-      rff <- ffStats(ff)
-      rff
-    })
-    
-    no <- getNote(ff,input$uploadedWavs)
-    
-    output$noteTableRight <- renderTable({
-      no
-    })
-    
-    
-    output$keycentersliderRight <- renderUI({
-      sliderInput("keycenterRight",
-                  "Centre key:",
-                  min = 21, max = 127,
-                  value = no[3,2], step = 1)
-    })
-    
-    output$lokeysliderRight <- renderUI({
-      lk <- as.integer(no[3,2])
-      
-      if (input$pitchPresetsRight == "b"){
-        lk <- lk-12
-        if (lk < 21){
-          lk <- 21
-        }
-      }
-      
-      if (input$pitchPresetsRight == "c"){
-        lk <- 21
-      }
-      sliderInput("lokeyRight",
-                  "Low key:",
-                  min = 21, max = 127,
-                  value = lk, step = 1)
-      
-    })
-    
-    output$highkeysliderRight <- renderUI({
-      hk <- as.integer(no[3,2])
-      
-      if (input$pitchPresetsRight == "b"){
-        hk <- hk+12
-        if (hk > 127){
-          hk <- 127
-        }
-      }
-      if (input$pitchPresetsRight == "c"){
-        hk <- 127
-      }
-      
-      sliderInput("highkeyRight",
-                  "High key:",
-                  min = 21, max = 127,
-                  value = hk, step = 1)
-    })
-    
-    output$AmpEnvAttackRight <- renderUI({
-      sliderInput("ampEnvAttackRight",
-                  "Amp envelope - Attack (s):",
-                  min = 0, max = 5,
-                  value = 0, step = 0.5)
-    })
-    
-    output$AmpEnvReleaseRight <- renderUI({
-      sliderInput("ampEnvReleaseRight",
-                  "Amp envelope - Release (s):",
-                  min = 0, max = 5,
-                  value = 0, step = 0.5)
-    })
-    
-    output$opcodeActionRight <- renderUI({
-      actionButton("generateOpcodesRight",
-                   "Generate Op Codes",
-                   width = 300)
-    })
-    
-    observeEvent(input$generateOpcodesRight,{
-      output$opcodeViewRight <- renderText({
-        
-        sfzz <- paste0(sfz_header,"\n",
-                       "<group>","\n",
-                       "ampeg_attack=",input$ampEnvAttackRight,"\n",
-                       "ampeg_release=",input$ampEnvReleaseRight,"\n",
-                       "<region>",
-                       " sample=../samples/",input$uploadedWavs,
-                       " lokey=",input$lokeyRight,
-                       " hikey=",input$highkeyRight,
-                       " pitch_keycenter=",input$keycenterRight,
-                       " seq_length=1"," seq_position=1",
-                       " lovel=0"," hivel=127"
-        )
-        sfzoutput$outtext[[2]] <- sfzz
-        sfzz
-      })
-    })
-    
-  })
+  # ##fundamental frequency right
+  # observeEvent(input$getffRight,{
+  #   periodRight <- periodogram(currentWav$wav[[3]],
+  #                              width = 256)
+  #   ff <- FF(periodRight)
+  #   
+  #   output$ffRight <- renderPlot({
+  #     par(bg = bg)
+  #     plot(periodRight,
+  #          col = colours[3],
+  #          main = paste0(input$uploadedWavs,"-right-Frequencies"),
+  #          xlim = input$ffRightSlider)
+  #   })
+  #   
+  #   output$ffTableStatsRight <- renderTable({
+  #     rff <- ffStats(ff)
+  #     rff
+  #   })
+  #   
+  #   no <- getNote(ff,input$uploadedWavs)
+  #   
+  #   output$noteTableRight <- renderTable({
+  #     no
+  #   })
+  #   
+  #   
+  #   output$keycentersliderRight <- renderUI({
+  #     sliderInput("keycenterRight",
+  #                 "Centre key:",
+  #                 min = 21, max = 127,
+  #                 value = no[3,2], step = 1)
+  #   })
+  #   
+  #   output$lokeysliderRight <- renderUI({
+  #     lk <- as.integer(no[3,2])
+  #     
+  #     if (input$pitchPresetsRight == "b"){
+  #       lk <- lk-12
+  #       if (lk < 21){
+  #         lk <- 21
+  #       }
+  #     }
+  #     
+  #     if (input$pitchPresetsRight == "c"){
+  #       lk <- 21
+  #     }
+  #     sliderInput("lokeyRight",
+  #                 "Low key:",
+  #                 min = 21, max = 127,
+  #                 value = lk, step = 1)
+  #     
+  #   })
+  #   
+  #   output$highkeysliderRight <- renderUI({
+  #     hk <- as.integer(no[3,2])
+  #     
+  #     if (input$pitchPresetsRight == "b"){
+  #       hk <- hk+12
+  #       if (hk > 127){
+  #         hk <- 127
+  #       }
+  #     }
+  #     if (input$pitchPresetsRight == "c"){
+  #       hk <- 127
+  #     }
+  #     
+  #     sliderInput("highkeyRight",
+  #                 "High key:",
+  #                 min = 21, max = 127,
+  #                 value = hk, step = 1)
+  #   })
+  #   
+  #   output$AmpEnvAttackRight <- renderUI({
+  #     sliderInput("ampEnvAttackRight",
+  #                 "Amp envelope - Attack (s):",
+  #                 min = 0, max = 5,
+  #                 value = 0, step = 0.5)
+  #   })
+  #   
+  #   output$AmpEnvReleaseRight <- renderUI({
+  #     sliderInput("ampEnvReleaseRight",
+  #                 "Amp envelope - Release (s):",
+  #                 min = 0, max = 5,
+  #                 value = 0, step = 0.5)
+  #   })
+  #   
+  #   output$opcodeActionRight <- renderUI({
+  #     actionButton("generateOpcodesRight",
+  #                  "Generate Op Codes",
+  #                  width = 300)
+  #   })
+  #   
+  #   observeEvent(input$generateOpcodesRight,{
+  #     output$opcodeViewRight <- renderText({
+  #       
+  #       sfzz <- paste0(sfz_header,"\n",
+  #                      "<group>","\n",
+  #                      "ampeg_attack=",input$ampEnvAttackRight,"\n",
+  #                      "ampeg_release=",input$ampEnvReleaseRight,"\n",
+  #                      "<region>",
+  #                      " sample=../samples/",input$uploadedWavs,
+  #                      " lokey=",input$lokeyRight,
+  #                      " hikey=",input$highkeyRight,
+  #                      " pitch_keycenter=",input$keycenterRight,
+  #                      " seq_length=1"," seq_position=1",
+  #                      " lovel=0"," hivel=127"
+  #       )
+  #       sfzoutput$outtext[[2]] <- sfzz
+  #       sfzz
+  #     })
+  #   })
+  #   
+  # })
   
-  output$downloadLeftOpCode <- downloadHandler(
-    filename = function() {
-      n <- input$instrumentNameLeft
-      if (nchar(n) == 0){
-        n <- "sample_instrument"
-      }
-      paste(n,".sfz",sep="")
-    },
-    content = function(file) {
-      writeLines(sfzoutput$outtext[[1]], file)
-    }
-  )
+  # output$downloadLeftOpCode <- downloadHandler(
+  #   filename = function() {
+  #     n <- input$instrumentNameLeft
+  #     if (nchar(n) == 0){
+  #       n <- "sample_instrument"
+  #     }
+  #     paste(n,".sfz",sep="")
+  #   },
+  #   content = function(file) {
+  #     writeLines(sfzoutput$outtext[[1]], file)
+  #   }
+  # )
   
-  output$downloadRightOpCode <- downloadHandler(
-    filename = function() {
-      n <- input$instrumentNameRight
-      if (nchar(n) == 0){
-        n <- "sample_instrument"
-      }
-      paste(n,".sfz",sep="")
-    },
-    content = function(file) {
-      writeLines(sfzoutput$outtext[[2]], file)
-    }
-  )
+  # output$downloadRightOpCode <- downloadHandler(
+  #   filename = function() {
+  #     n <- input$instrumentNameRight
+  #     if (nchar(n) == 0){
+  #       n <- "sample_instrument"
+  #     }
+  #     paste(n,".sfz",sep="")
+  #   },
+  #   content = function(file) {
+  #     writeLines(sfzoutput$outtext[[2]], file)
+  #   }
+  # )
   
+  ####Automap files and view####
   ##modal window for macro mode
   observeEvent(input$macroGo, {
-    
-    final.df <- data.frame(matrix(ncol = 5, nrow = 0))
-    sfzzContent <- vector()
     
     sfzzMacroHeader <- paste0(sfz_header,"\n",
                               "<group>","\n",
@@ -709,30 +752,38 @@ server <- function(input, output) {
       }
       
     }
+    #Determine pitch from file name (SFZ)
     if (input$macroPresets=='b'){
       for (i in 1:length(input$loadWavFile$name)){
         f <- input$loadWavFile$name[i]
-        print(f)
+        ###parse to text to get the note name
         note.number <- search.freq(f)
-        final.df[nrow(final.df)+1,1] <- f
-        final.df[nrow(final.df),2] <- note.number
-        final.df[nrow(final.df),3] <- '-'
-        final.df[nrow(final.df),4] <- '-'
-        final.df[nrow(final.df),5] <- '-'
+        noteMapping$mapping[1] <- note.number
+        noteMapping$mapping[2] <- note.number
+        noteMapping$mapping[3] <- note.number
+        
+        print(paste0('note.number: ',note.number))
+        #populate ReactiveValue object
+        sfzobject$df[nrow(sfzobject$df)+1,1] <- f
+        sfzobject$df[nrow(sfzobject$df),2] <- noteMapping$mapping[2]
+        sfzobject$df[nrow(sfzobject$df),3] <- noteMapping$mapping[1]
+        sfzobject$df[nrow(sfzobject$df),4] <- noteMapping$mapping[3]
         
         sfzzMacro <- paste0("//",note.number,"\n",
                             "<region>",
                             " sample=../samples/",input$loadWavFile$name[i],
-                            " lokey=",note.number,
-                            " hikey=",note.number,
-                            " pitch_keycenter=",note.number,
+                            " lokey=",noteMapping$mapping[1],
+                            " hikey=",noteMapping$mapping[3],
+                            " pitch_keycenter=",noteMapping$mapping[2],
                             " seq_length=1"," seq_position=1",
                             " lovel=0"," hivel=127","\n"
         )
-        sfzzContent[i] <- sfzzMacro
+        sfzobject$sfzvector[i] <- sfzzMacro
       }
       
     }
+    
+    #Simple Percussion mapping (SFZ)
     if (input$macroPresets=='c'){
       note.number <- 36
       for (i in 1:length(input$loadWavFile$name)){
@@ -745,34 +796,50 @@ server <- function(input, output) {
                             " seq_length=1"," seq_position=1",
                             " lovel=0"," hivel=127","\n"
         )
-        sfzzContent[i] <- sfzzMacro
-        final.df[nrow(final.df)+1,1] <- input$loadWavFile$name[i]
-        final.df[nrow(final.df),2] <- note.number
-        final.df[nrow(final.df),3] <- '-'
-        final.df[nrow(final.df),4] <- '-'
-        final.df[nrow(final.df),5] <- '-'
+        sfzobject$sfzvector[i] <- sfzzMacro
+        
+        sfzobject$df[nrow(sfzobject$df)+1,1] <- input$loadWavFile$name[i]
+        sfzobject$df[nrow(sfzobject$df),2] <- note.number
+        sfzobject$df[nrow(sfzobject$df),3] <- note.number
+        sfzobject$df[nrow(sfzobject$df),4] <- note.number
         note.number <- note.number + 1
       }
       
     }
     
-    
-    colnames(final.df) <- c("Input File",
-                            "Note Number",
-                            "Note Name",
-                            "Frequency",
-                            "Median Frequency - input")
-    print(final.df)
-    sfzzContentUnlist <- unlist(sfzzContent)
+    colnames(sfzobject$df) <- c("Input File",
+                                "Note Number",
+                                "Low note mapping",
+                                "High note mapping")
+    print(sfzobject$df)
+    sfzzContentUnlist <- unlist(sfzobject$sfzvector)
     sfzzContentUnlist <- sort(sfzzContentUnlist)
     
     sfzzFinal <- c(sfzzMacroHeader,sfzzContentUnlist)
-    sfzoutput$outtext[[3]] <- sfzzFinal
-    output$macroSFZoutput <- renderText(sfzzFinal)
+    sfzobject$sfz[[1]] <- sfzzFinal
+    
+    output$macroSFZoutput <- renderText({
+      sfzobject$sfz[[1]]
+    })
+    
     
     showModal(modalDialog(
       title = "Macro mode",
-      renderTable(final.df),
+      renderTable(sfzobject$df),
+      #uiOutput("manualEditDropdown"),
+      #uiOutput("editRadio"),
+      # conditionalPanel(condition = 'input.select1=="show"',
+      #                  uiOutput("showRootNote"),
+      #                  sliderInput("HighLowNotes",
+      #                              "Select high and low range",
+      #                              min=21,
+      #                              max=108,
+      #                              value=c(noteMapping$mapping[1],
+      #                                      noteMapping$mapping[3])
+      #                              ),
+      #                  uiOutput("manualButton")
+      # ),
+      hr(),
       verbatimTextOutput("macroSFZoutput"),
       downloadButton("downloadMacroSFZ",
                      label = "Download sfz file"),
@@ -781,11 +848,124 @@ server <- function(input, output) {
       footer = tagList(
         actionButton("macromodalClose", "Close")
       )
-    ))
+    )
+    )
+  
   })
+  
+  
+  ####manual editting####
+  observeEvent(input$manualEditGo,{
+    
+    #create UI elements for editting macro
+    ##create a dropdown for editting wavs
+    output$manualEditDropdown <- renderUI({
+      
+      selectInput(
+        inputId = "uploadedWavs3",
+        label = "Manually edit mapping",
+        choices = input$loadWavFile$name,
+        selected = NULL,
+        multiple = FALSE,
+        selectize = TRUE,
+        width = 400,
+        size = NULL
+      )
+    })
+    
+    ##update sfz button
+    output$updateButton <- renderUI({
+      actionButton("updateGo",
+                   "Update SFZ file",
+                   width = 300)
+    })
+    
+    
+    # output$editRadio <- renderUI({
+    #   radioButtons("select1",
+    #                "Editting mode",
+    #                c("Off" = "hide", "On" = "show")
+    #   )
+    # })
+    
+    output$showRootNote <- renderUI({
+      content <- paste0("<H3>Root note is mapped to note number ",
+                        noteMapping$mapping[2],
+                        "</H3>")
+      HTML(content)
+    })
+    
+    ##show modal for editting
+    showModal(modalDialog(
+      title = "Edit mapping",
+      #renderTable(final.df),
+      uiOutput("manualEditDropdown"),
+      uiOutput("showRootNote"),
+      sliderInput("HighLowNotes",
+                  "Select high and low range",
+                  min=21,
+                  max=108,
+                  value=c(noteMapping$mapping[1],
+                          noteMapping$mapping[3])
+      ),
+      uiOutput("updateButton"),
+      hr(),
+      #verbatimTextOutput("macroSFZoutput"),
+      # downloadButton("downloadMacroSFZ",
+      #                label = "Download sfz file"),
+      size = "l",
+      easyClose = TRUE,
+      footer = tagList(
+        actionButton("macromodalClose", "Close")
+      )
+    )
+    )
+    
+  })
+  
+  observeEvent(input$updateGo,{
+    removeModal()
+    #update high and low notes based on sliders
+    noteMapping$mapping[1] <- input$HighLowNotes[1]
+    noteMapping$mapping[3] <- input$HighLowNotes[2]
+    
+    ####to do ####
+    sfzzMacroHeader <- paste0(sfz_header,"\n",
+                              "<group>","\n",
+                              "ampeg_attack=",input$ampEnvAttackMacro,"\n",
+                              "ampeg_release=",input$ampEnvReleaseMacro,"\n"
+    )
+
+    final.df[nrow(final.df)+1,1] <- f
+    final.df[nrow(final.df),2] <- noteMapping$mapping[2]
+    final.df[nrow(final.df),3] <- '-'
+    final.df[nrow(final.df),4] <- '-'
+    final.df[nrow(final.df),5] <- '-'
+
+    sfzzMacro <- paste0("//",noteMapping$mapping[2],"\n",
+                        "<region>",
+                        " sample=../samples/",input$uploadedWavs3,
+                        " lokey=",noteMapping$mapping[1],
+                        " hikey=",noteMapping$mapping[3],
+                        " pitch_keycenter=",noteMapping$mapping[2],
+                        " seq_length=1"," seq_position=1",
+                        " lovel=0"," hivel=127","\n"
+    )
+    sfzzContent[1] <- sfzzMacro
+    sfzzContentUnlist <- unlist(sfzzContent)
+    sfzzContentUnlist <- sort(sfzzContentUnlist)
+    sfzzFinal <- c(sfzzMacroHeader,sfzzContentUnlist)
+    
+  })
+  
+  
   
   observeEvent(input$macromodalClose,{
     removeModal()
+  })
+  
+  observeEvent(input$viewFinal,{
+    
   })
   
   output$downloadMacroSFZ <- downloadHandler(
@@ -798,6 +978,81 @@ server <- function(input, output) {
     }
   )
   
+  ####batch bit conversion####
+  output$batchConvertDropdown <- renderUI({
+      req(input$loadWavFile)
+      
+      selectInput(
+        inputId = "uploadedWavs2",
+        label = "Uploaded wav files",
+        choices = input$loadWavFile$name,
+        selected = NULL,
+        multiple = FALSE,
+        selectize = TRUE,
+        width = 400,
+        size = NULL
+      )
+  })
+  
+  output$bitDepth <- renderUI({
+    selectInput(
+      inputId = "bitDepth",
+      label = "Output Bit-depth",
+      choices = c("16","8"),
+      selected = "16",
+      multiple = FALSE,
+      selectize = TRUE,
+      width = 200,
+      size = NULL
+    )
+  })
+  
+  
+  observeEvent(input$batchBitConvert,{
+    
+      print("Bit Depth conversion")
+      f <- input$uploadedWavs2
+      print(f)
+      f.index <- grep(f,input$loadWavFile$name)
+      print(f.index)
+      
+      wavToConvert <- readWave(input$loadWavFile$datapath[f.index],
+                          toWaveMC = FALSE)
+      currentBitDepth <- wavToConvert@bit
+      newBitDepth <- as.character(input$bitDepth)
+      wavToConvert <- bitDepth(wavToConvert,newBitDepth)
+      #put convertedwave in reactiveValue object
+      currentWav$wav[[4]] <- wavToConvert
+      
+      output$bitConvertPlot <- renderPlot({
+        plot(currentWav$wav[[4]])
+      })
+      
+      
+
+      showModal(modalDialog(
+        title = "Bit Depth Conversion",
+        paste0("File is ",f,"\n",
+               "Original bit depth is ",currentBitDepth,"\n",
+               "New bit depth is ",newBitDepth),
+        hr(),
+        plotOutput("bitConvertPlot"),
+        downloadButton("downloadBitConverted",
+                       label = "Download Bit-converted wav"),
+        easyClose = TRUE
+      ))
+      
+      output$downloadBitConverted <- downloadHandler(
+        filename = function() {
+          ff <- sub('.wav','',f)
+          paste0(ff,"_",newBitDepth,"bit.wav")
+        },
+        content = function(file) {
+          writeWave(currentWav$wav[[4]], file, extensible = FALSE)
+        }
+      )
+    
+  })
   
 }
 
