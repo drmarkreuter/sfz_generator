@@ -177,10 +177,6 @@ ui <- fluidPage(theme = shinytheme("cyborg"),
                                      actionButton("manualEditGo",
                                                   "Manually edit note mapping",
                                                   width = 300),
-                                     hr(),
-                                     actionButton("viewFinal",
-                                                  "View and Save SFZ file",
-                                                  width = 300),
                                      hr()
                     ),
                     hr(),
@@ -293,7 +289,17 @@ ui <- fluidPage(theme = shinytheme("cyborg"),
                     ,
                     hr(),
                     HTML("<h3>Mapping Preview</h3>"),
-                    tableOutput("mappingDFpreview"),
+                    fluidRow(
+                      column(tableOutput("mappingDFpreview"),
+                             width = 6),
+                      column(uiOutput("manualEditDropdown"),
+                             uiOutput("mappingSlider"),
+                             uiOutput("updateButton"),
+                             width = 6)
+                    ),
+                    actionButton("viewFinal",
+                                 "View and Save SFZ file",
+                                 width = 300),
                     hr()
                   )
                 )
@@ -756,6 +762,9 @@ server <- function(input, output) {
     }
     #Determine pitch from file name (SFZ)
     if (input$macroPresets=='b'){
+      #reset df
+      sfzobject$df <- data.frame(matrix(ncol = 4, nrow = 0))
+      
       for (i in 1:length(input$loadWavFile$name)){
         f <- input$loadWavFile$name[i]
         ###parse to text to get the note name
@@ -787,6 +796,9 @@ server <- function(input, output) {
     
     #Simple Percussion mapping (SFZ)
     if (input$macroPresets=='c'){
+      #reset df
+      sfzobject$df <- data.frame(matrix(ncol = 4, nrow = 0))
+      
       note.number <- 36
       for (i in 1:length(input$loadWavFile$name)){
         sfzzMacro <- paste0("//",i,"\n",
@@ -822,6 +834,10 @@ server <- function(input, output) {
     
     output$macroSFZoutput <- renderText({
       sfzobject$sfz[[1]]
+    })
+    
+    output$dfPreviewMacro <- renderTable({
+      sfzobject$df
     })
     
     
@@ -890,19 +906,14 @@ server <- function(input, output) {
     #   )
     # })
     
-    output$showRootNote <- renderUI({
-      content <- paste0("<H3>Root note is mapped to note number ",
-                        noteMapping$mapping[2],
-                        "</H3>")
-      HTML(content)
-    })
+    
     
     ##show modal for editting
     showModal(modalDialog(
       title = "Edit mapping",
       #renderTable(final.df),
+      tableOutput("dfPreviewMacro"),
       uiOutput("manualEditDropdown"),
-      uiOutput("showRootNote"),
       sliderInput("HighLowNotes",
                   "Select high and low range",
                   min=21,
@@ -939,10 +950,12 @@ server <- function(input, output) {
     )
 
     
-    ####to do ####
+
     ####find index of wav to update
     editWav.index <- grep(input$uploadedWavs3,sfzobject$df[,1])
     print(paste0("Edit index: ",editWav.index))
+    note.number <- search.freq(input$uploadedWavs3)
+    noteMapping$mapping[2] <- note.number
     
     sfzobject$df[editWav.index,1] <- input$uploadedWavs3
     sfzobject$df[editWav.index,2] <- noteMapping$mapping[2]
@@ -1006,6 +1019,41 @@ server <- function(input, output) {
   output$mappingDFpreview <- renderTable({
     sfzobject$df
   })
+  
+  ####editting on mainpage####
+  output$manualEditDropdown <- renderUI({
+    
+    selectInput(
+      inputId = "uploadedWavs3",
+      label = "Manually edit mapping",
+      choices = input$loadWavFile$name,
+      selected = NULL,
+      multiple = FALSE,
+      selectize = TRUE,
+      width = 400,
+      size = NULL
+    )
+  })
+  
+  ##slider for mapping
+  output$mappingSlider <- renderUI({
+    sliderInput("HighLowNotes",
+                "Select high and low range",
+                min=21,
+                max=108,
+                value=c(noteMapping$mapping[1],
+                        noteMapping$mapping[3])
+    )
+  })
+  
+  
+  ##update sfz button
+  output$updateButton <- renderUI({
+    actionButton("updateGo",
+                 "Update SFZ file",
+                 width = 300)
+  })
+  
   
   ####batch bit conversion####
   output$batchConvertDropdown <- renderUI({
