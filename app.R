@@ -114,6 +114,25 @@ bitDepth <- function(wav,depth){
   return(testwav)
 }
 
+inameFunction <- function(){
+  iname <- paste0(
+    consanants[runif(1,1,21)],
+    vowels[runif(1,1,5)],
+    consanants[runif(1,1,21)],
+    vowels[runif(1,1,5)],
+    consanants[runif(1,1,21)]
+  )
+  return(iname)
+}
+
+autoMapperDown <- function(df){
+  for (i in 1:(nrow(df)-1)){
+    df[i+1,3] <- as.integer(df[i,4]+1)
+    
+  }
+  return(df)
+}
+
 #####functions END #####
 
 ##on start-up - cleanse www folder
@@ -173,10 +192,10 @@ ui <- fluidPage(theme = shinytheme("cyborg"),
                                      actionButton("macroGo",
                                                   "Automap all files",
                                                   width = 300),
-                                     hr(),
-                                     actionButton("manualEditGo",
-                                                  "Manually edit note mapping",
-                                                  width = 300),
+                                     # hr(),
+                                     # actionButton("manualEditGo",
+                                     #              "Manually edit note mapping",
+                                     #              width = 300),
                                      hr()
                     ),
                     hr(),
@@ -190,7 +209,7 @@ ui <- fluidPage(theme = shinytheme("cyborg"),
                     )
                   ),
                   
-                  
+                  ####main panel####
                   mainPanel(
                     plotOutput("wavplot"),
                     fluidRow(
@@ -290,11 +309,25 @@ ui <- fluidPage(theme = shinytheme("cyborg"),
                     hr(),
                     HTML("<h3>Mapping Preview</h3>"),
                     fluidRow(
-                      column(tableOutput("mappingDFpreview"),
+                      column(uiOutput("instrumentName"),
+                             tableOutput("mappingDFpreview"),
                              width = 6),
                       column(uiOutput("manualEditDropdown"),
                              uiOutput("mappingSlider"),
+                             textInput("instrumentName",
+                                       "Name your instrument",
+                                       value = "my sample instrument",
+                                       width = NULL,
+                                       placeholder = NULL),
+                             actionButton("createName",
+                                          "or, create a random instrument name",
+                                          width = 300),
+                             hr(),
                              uiOutput("updateButton"),
+                             hr(),
+                             actionButton("automapper",
+                                          "AutoMapDown",
+                                          width = 300),
                              width = 6)
                     ),
                     actionButton("viewFinal",
@@ -323,6 +356,7 @@ server <- function(input, output) {
   sfzobject$sfz <- list()
   sfzobject$df <- data.frame(matrix(ncol = 4, nrow = 0))
   sfzobject$sfzvector <- vector()
+  sfzobject$instrumentName <- vector()
   
   # observeEvent(input$uploadWavs,{
   #     #wd <- choose.dir()
@@ -873,68 +907,68 @@ server <- function(input, output) {
   
   
   ####manual editting####
-  observeEvent(input$manualEditGo,{
-    
-    #create UI elements for editting macro
-    ##create a dropdown for editting wavs
-    output$manualEditDropdown <- renderUI({
-      
-      selectInput(
-        inputId = "uploadedWavs3",
-        label = "Manually edit mapping",
-        choices = input$loadWavFile$name,
-        selected = NULL,
-        multiple = FALSE,
-        selectize = TRUE,
-        width = 400,
-        size = NULL
-      )
-    })
-    
-    ##update sfz button
-    output$updateButton <- renderUI({
-      actionButton("updateGo",
-                   "Update SFZ file",
-                   width = 300)
-    })
-    
-    
-    # output$editRadio <- renderUI({
-    #   radioButtons("select1",
-    #                "Editting mode",
-    #                c("Off" = "hide", "On" = "show")
-    #   )
-    # })
-    
-    
-    
-    ##show modal for editting
-    showModal(modalDialog(
-      title = "Edit mapping",
-      #renderTable(final.df),
-      tableOutput("dfPreviewMacro"),
-      uiOutput("manualEditDropdown"),
-      sliderInput("HighLowNotes",
-                  "Select high and low range",
-                  min=21,
-                  max=108,
-                  value=c(noteMapping$mapping[1],
-                          noteMapping$mapping[3])
-      ),
-      uiOutput("updateButton"),
-      hr(),
-      #verbatimTextOutput("macroSFZoutput"),
-      # downloadButton("downloadMacroSFZ",
-      #                label = "Download sfz file"),
-      size = "l",
-      easyClose = TRUE,
-      footer = tagList(
-        actionButton("macromodalClose", "Close")
-      )
-    )
-    )
-    
-  })
+  # observeEvent(input$manualEditGo,{
+  #   
+  #   #create UI elements for editting macro
+  #   ##create a dropdown for editting wavs
+  #   output$manualEditDropdown <- renderUI({
+  #     
+  #     selectInput(
+  #       inputId = "uploadedWavs3",
+  #       label = "Manually edit mapping",
+  #       choices = input$loadWavFile$name,
+  #       selected = NULL,
+  #       multiple = FALSE,
+  #       selectize = TRUE,
+  #       width = 400,
+  #       size = NULL
+  #     )
+  #   })
+  #   
+  #   ##update sfz button
+  #   output$updateButton <- renderUI({
+  #     actionButton("updateGo",
+  #                  "Update SFZ file",
+  #                  width = 300)
+  #   })
+  #   
+  #   
+  #   # output$editRadio <- renderUI({
+  #   #   radioButtons("select1",
+  #   #                "Editting mode",
+  #   #                c("Off" = "hide", "On" = "show")
+  #   #   )
+  #   # })
+  #   
+  #   
+  #   
+  #   ##show modal for editting
+  #   showModal(modalDialog(
+  #     title = "Edit mapping",
+  #     #renderTable(final.df),
+  #     tableOutput("dfPreviewMacro"),
+  #     uiOutput("manualEditDropdown"),
+  #     sliderInput("HighLowNotes",
+  #                 "Select high and low range",
+  #                 min=21,
+  #                 max=108,
+  #                 value=c(noteMapping$mapping[1],
+  #                         noteMapping$mapping[3])
+  #     ),
+  #     uiOutput("updateButton"),
+  #     hr(),
+  #     #verbatimTextOutput("macroSFZoutput"),
+  #     # downloadButton("downloadMacroSFZ",
+  #     #                label = "Download sfz file"),
+  #     size = "l",
+  #     easyClose = TRUE,
+  #     footer = tagList(
+  #       actionButton("macromodalClose", "Close")
+  #     )
+  #   )
+  #   )
+  #   
+  # })
   
   observeEvent(input$updateGo,{
     removeModal()
@@ -942,6 +976,9 @@ server <- function(input, output) {
     noteMapping$mapping[1] <- input$HighLowNotes[1]
     noteMapping$mapping[3] <- input$HighLowNotes[2]
     
+    sfz_header <- sub('//sfz instrument',
+                      paste0('//',sfzobject$instrumentName),
+                      sfz_header)
     
     sfzzMacroHeader <- paste0(sfz_header,"\n",
                               "<group>","\n",
@@ -1008,11 +1045,12 @@ server <- function(input, output) {
   
   output$downloadMacroSFZ <- downloadHandler(
     filename = function() {
-      n <- "sample_instrument"
+      #n <- "sample_instrument"
+      n <- sfzobject$instrumentName[1]
       paste(n,".sfz",sep="")
     },
     content = function(file) {
-      writeLines(sfzoutput$outtext[[3]], file)
+      writeLines(sfzobject$sfz[[1]], file)
     }
   )
   
@@ -1130,6 +1168,59 @@ server <- function(input, output) {
       )
     
   })
+  
+  eventReactive(intput$instrumentName,{
+    sfzobject$instrumentName[1] <- input$instrumentName
+  })
+  
+  observeEvent(input$createName,{
+    sfzobject$instrumentName[1] <- inameFunction()
+  })
+  
+  output$instrumentName <- renderUI({
+    HTML(paste0('<h3>',
+                sfzobject$instrumentName[1],
+                '</h3>'))
+    
+  })
+  
+  observeEvent(input$automapper,{
+    sfzobject$df <- autoMapperDown(sfzobject$df)
+    print(sfzobject$df)
+    #recreate the SFZ object
+    sfz_header <- sub('//sfz instrument',
+                      paste0('//',sfzobject$instrumentName),
+                      sfz_header)
+    
+    sfzzMacroHeader <- paste0(sfz_header,"\n",
+                              "<group>","\n",
+                              "ampeg_attack=",input$ampEnvAttackMacro,"\n",
+                              "ampeg_release=",input$ampEnvReleaseMacro,"\n"
+    )
+    
+    for (i in 1:nrow(sfzobject$df)){
+      sfzzMacro <- paste0("//",sfzobject$df[i,2],"\n",
+                          "<region>",
+                          " sample=../samples/",sfzobject$df[i,1],
+                          " lokey=",sfzobject$df[i,3],
+                          " hikey=",sfzobject$df[i,4],
+                          " pitch_keycenter=",sfzobject$df[i,2],
+                          " seq_length=1"," seq_position=1",
+                          " lovel=0"," hivel=127","\n"
+      )
+      sfzobject$sfz[i] <- sfzzMacro
+    }
+    
+    sfzzContentUnlist <- unlist(sfzobject$sfz)
+    sfzzContentUnlist <- sort(sfzzContentUnlist)
+    sfzzFinal <- c(sfzzMacroHeader,sfzzContentUnlist)
+    sfzobject$sfz[[1]] <- sfzzFinal
+    
+    
+    
+  })
+  
+  
   
 }
 
