@@ -770,6 +770,11 @@ server <- function(input, output) {
   ##modal window for macro mode
   observeEvent(input$macroGo, {
     
+    #reinstantiate the objects 
+    sfzobject$df <- data.frame(matrix(ncol = 4, nrow = 0))
+    sfzobject$sfz <- list()
+    sfzobject$sfzvector <- vector()
+    
     sfzzMacroHeader <- paste0(sfz_header,"\n",
                               "<group>","\n",
                               "ampeg_attack=",input$ampEnvAttackMacro,"\n",
@@ -854,6 +859,9 @@ server <- function(input, output) {
       }
       
     }
+    
+    ##sort df by Note number
+    sfzobject$df <- sfzobject$df[order(sfzobject$df[,2]),]
     
     colnames(sfzobject$df) <- c("Input File",
                                 "Note Number",
@@ -1187,6 +1195,9 @@ server <- function(input, output) {
   observeEvent(input$automapper,{
     sfzobject$df <- autoMapperDown(sfzobject$df)
     print(sfzobject$df)
+    ##sort df by Note number
+    sfzobject$df <- sfzobject$df[order(sfzobject$df[,2]),]
+    
     #recreate the SFZ object
     sfz_header <- sub('//sfz instrument',
                       paste0('//',sfzobject$instrumentName),
