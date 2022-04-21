@@ -307,27 +307,32 @@ ui <- fluidPage(theme = shinytheme("cyborg"),
                     )#fluidRow end
                     ,
                     hr(),
+                    ####Mapping Preview####
                     HTML("<h3>Mapping Preview</h3>"),
                     fluidRow(
                       column(uiOutput("instrumentName"),
                              tableOutput("mappingDFpreview"),
                              width = 6),
-                      column(uiOutput("manualEditDropdown"),
-                             uiOutput("mappingSlider"),
-                             textInput("instrumentName",
+                      column(textInput("instrumentName",
                                        "Name your instrument",
                                        value = "my sample instrument",
                                        width = NULL,
                                        placeholder = NULL),
+                             actionButton("useName",
+                                          "Use this instrument name",
+                                          width = 300),
                              actionButton("createName",
                                           "or, create a random instrument name",
                                           width = 300),
                              hr(),
-                             uiOutput("updateButton"),
-                             hr(),
                              actionButton("automapper",
                                           "AutoMapDown",
                                           width = 300),
+                             hr(),
+                             uiOutput("manualEditDropdown"),
+                             uiOutput("mappingSlider"),
+                             uiOutput("updateButton"),
+                             hr(),
                              width = 6)
                     ),
                     actionButton("viewFinal",
@@ -1036,12 +1041,13 @@ server <- function(input, output) {
   
   observeEvent(input$viewFinal,{
     showModal(modalDialog(
-      title = "Finalexport",
-      renderTable(sfzobject$df),
-      hr(),
-      verbatimTextOutput("macroSFZoutput"),
+      title = "Final Preview and Save",
+      #renderTable(sfzobject$df),
       downloadButton("downloadMacroSFZ",
                      label = "Download sfz file"),
+      hr(),
+      HTML("<h4>Preview</h4>"),
+      verbatimTextOutput("macroSFZoutput"),
       size = "l",
       easyClose = TRUE,
       footer = tagList(
@@ -1083,12 +1089,15 @@ server <- function(input, output) {
   
   ##slider for mapping
   output$mappingSlider <- renderUI({
+    f.index <- grep(input$uploadedWavs3,sfzobject$df[,1])
+    lowMapping <- sfzobject$df[f.index,3]
+    highMapping <- sfzobject$df[f.index,4]
     sliderInput("HighLowNotes",
                 "Select high and low range",
                 min=21,
                 max=108,
-                value=c(noteMapping$mapping[1],
-                        noteMapping$mapping[3])
+                value=c(lowMapping,
+                        highMapping)
     )
   })
   
@@ -1177,7 +1186,8 @@ server <- function(input, output) {
     
   })
   
-  eventReactive(intput$instrumentName,{
+  
+  observeEvent(input$useName,{
     sfzobject$instrumentName[1] <- input$instrumentName
   })
   
