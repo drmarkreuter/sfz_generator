@@ -155,8 +155,8 @@ if (length(previousWavs)>0){
 ui <- fluidPage(theme = shinytheme("cyborg"),
                 
                 # Application title
-                titlePanel("SFZ creator"),
                 
+                titlePanel(title=div(img(src="logo_sfz4693.png",height=60), "SFZcreator")),
                 
                 sidebarLayout(
                   sidebarPanel(
@@ -889,7 +889,11 @@ server <- function(input, output) {
     
     
     showModal(modalDialog(
-      title = "Macro mode",
+      #img(src="logo_sfz4693.png",height=60),
+      #title = "Macro mode",
+      
+      title=div(img(src="logo_sfz4693.png",height=40), "SFZcreator"),
+      
       renderTable(sfzobject$df),
       #uiOutput("manualEditDropdown"),
       #uiOutput("editRadio"),
@@ -1041,8 +1045,11 @@ server <- function(input, output) {
   
   observeEvent(input$viewFinal,{
     showModal(modalDialog(
-      title = "Final Preview and Save",
+      #title = "Final Preview and Save",
       #renderTable(sfzobject$df),
+      
+      title=div(img(src="logo_sfz4693.png",height=40), "SFZcreator"),
+      
       downloadButton("downloadMacroSFZ",
                      label = "Download sfz file"),
       hr(),
