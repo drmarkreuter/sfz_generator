@@ -98,13 +98,20 @@ getNoteMacro <- function(wavv,inputWav){
 
 ##function to search freq.df
 search.freq <- function(wavname){
-  wavfn.index <- regexpr("[ABCDEFG]\\d",wavname)
-  wav.note <- regmatches(wavname,wavfn.index)
-  print(paste0("sanitizer note name: ",wav.note))
-  #wav.note <- substr(wavname,wavfn.index[[1]],wavfn.index[[1]]+1)
-  wav.note.index <- grep(wav.note,freq.df$NoteName)
-  wav.number <- freq.df[wav.note.index,1]
-  wav.number
+  #ignore sharps and zeros
+  zero.sharp.index <- grepl("0|#",wavname)
+  if (zero.sharp.index==FALSE){
+    wavfn.index <- regexpr("[ABCDEFG#]\\d",wavname)
+    wav.note <- regmatches(wavname,wavfn.index)
+    print(paste0("sanitizer note name: ",wav.note))
+    #wav.note <- substr(wavname,wavfn.index[[1]],wavfn.index[[1]]+1)
+    wav.note.index <- grep(wav.note,freq.df$NoteName)
+    wav.number <- freq.df[wav.note.index,1]
+    return(wav.number)
+  }
+  else{
+    return("999")
+  }
 }
 
 ##function to alter bit depth
@@ -813,28 +820,29 @@ server <- function(input, output) {
         f <- input$loadWavFile$name[i]
         ###parse to text to get the note name
         note.number <- search.freq(f)
-        noteMapping$mapping[1] <- note.number
-        noteMapping$mapping[2] <- note.number
-        noteMapping$mapping[3] <- note.number
-        
-        print(paste0('note.number: ',note.number))
-        #populate ReactiveValue object
-        sfzobject$df[nrow(sfzobject$df)+1,1] <- f
-        sfzobject$df[nrow(sfzobject$df),2] <- noteMapping$mapping[2]
-        sfzobject$df[nrow(sfzobject$df),3] <- noteMapping$mapping[1]
-        sfzobject$df[nrow(sfzobject$df),4] <- noteMapping$mapping[3]
-        
-        sfzzMacro <- paste0("//",note.number,"\n",
-                            "<region>",
-                            " sample=../samples/",input$loadWavFile$name[i],
-                            " lokey=",noteMapping$mapping[1],
-                            " hikey=",noteMapping$mapping[3],
-                            " pitch_keycenter=",noteMapping$mapping[2],
-                            " seq_length=1"," seq_position=1",
-                            " lovel=0"," hivel=127","\n"
-        )
-        sfzobject$sfzvector[i] <- sfzzMacro
-      }
+        if (note.number!="999"){
+          noteMapping$mapping[1] <- note.number
+          noteMapping$mapping[2] <- note.number
+          noteMapping$mapping[3] <- note.number
+          
+          print(paste0('note.number: ',note.number))
+          #populate ReactiveValue object
+          sfzobject$df[nrow(sfzobject$df)+1,1] <- f
+          sfzobject$df[nrow(sfzobject$df),2] <- noteMapping$mapping[2]
+          sfzobject$df[nrow(sfzobject$df),3] <- noteMapping$mapping[1]
+          sfzobject$df[nrow(sfzobject$df),4] <- noteMapping$mapping[3]
+          
+          sfzzMacro <- paste0("//",note.number,"\n",
+                              "<region>",
+                              " sample=../samples/",input$loadWavFile$name[i],
+                              " lokey=",noteMapping$mapping[1],
+                              " hikey=",noteMapping$mapping[3],
+                              " pitch_keycenter=",noteMapping$mapping[2],
+                              " seq_length=1"," seq_position=1",
+                              " lovel=0"," hivel=127","\n")
+          sfzobject$sfzvector[i] <- sfzzMacro
+        }#if end
+      }#for loop end
       
     }
     
