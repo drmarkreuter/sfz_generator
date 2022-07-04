@@ -146,6 +146,7 @@ autoMapperDown <- function(df){
 previousWavs <- list.files(path = paste0(getwd(),"/www"),
                            pattern = "[.]wav$",
                            full.names = TRUE)
+print(paste0('Previous wavs: ',previousWavs))
 
 if (length(previousWavs)>0){
   dirdir <- uniqueDirName()
@@ -1104,16 +1105,33 @@ server <- function(input, output) {
   
   ##slider for mapping
   output$mappingSlider <- renderUI({
-    f.index <- grep(input$uploadedWavs3,sfzobject$df[,1])
-    lowMapping <- sfzobject$df[f.index,3]
-    highMapping <- sfzobject$df[f.index,4]
-    sliderInput("HighLowNotes",
-                "Select high and low range",
-                min=21,
-                max=108,
-                value=c(lowMapping,
-                        highMapping)
+    #req()
+    validate(
+      need('input$uploadedWavs3','not ready')
     )
+    
+    if (nrow(sfzobject$df)>0){
+      f.index <- grep(input$uploadedWavs3,sfzobject$df[,1])
+      lowMapping <- (sfzobject$df[f.index,3])-1
+      highMapping <- (sfzobject$df[f.index,4])+1
+      sliderInput("HighLowNotes",
+                  "Select high and low range",
+                  min=21,
+                  max=108,
+                  value=c(lowMapping,
+                          highMapping)
+      )
+    }else{
+      sliderInput("HighLowNotes",
+                  "Select high and low range",
+                  min=21,
+                  max=108,
+                  value=c(21,
+                          108)
+      )
+    }
+    
+    
   })
   
   
