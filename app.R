@@ -161,10 +161,10 @@ if (length(previousWavs)>0){
 
 ##### UI Start ######
 ui <- fluidPage(theme = shinytheme("cyborg"),
-                
+                title = 'SFZsherpa',
                 # Application title
                 
-                titlePanel(title=div(img(src="logo_sfz4693.png",height=60), "SFZcreator")),
+                titlePanel(title=div(img(src="logo_sfz4693.png",height=60), "SFZsherpa")),
                 
                 sidebarLayout(
                   sidebarPanel(
@@ -338,6 +338,7 @@ ui <- fluidPage(theme = shinytheme("cyborg"),
                                           width = 300),
                              hr(),
                              uiOutput("manualEditDropdown"),
+                             img(src="88keys_wiki.png",height=28),
                              uiOutput("mappingSlider"),
                              uiOutput("updateButton"),
                              hr(),
