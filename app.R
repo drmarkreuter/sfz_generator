@@ -13,6 +13,9 @@ print(Sys.time())
 colours <- c("brown1","brown3","coral3")
 bg <- 'burlywood2'
 
+consonants <- c('b','c','d','f','g','h','j','k','l','m','n','p','qu','r','s','t','v','w','z','th','ch')
+vowels <- c('a','e','i','o','u')
+
 print(getwd())
 print(paste0(getwd(),"/resources/freq_table.txt"))
 fe <- file.exists(paste0(getwd(),"/resources/freq_table.txt"))
@@ -123,11 +126,11 @@ bitDepth <- function(wav,depth){
 
 inameFunction <- function(){
   iname <- paste0(
-    consanants[runif(1,1,21)],
+    consonants[runif(1,1,21)],
     vowels[runif(1,1,5)],
-    consanants[runif(1,1,21)],
+    consonants[runif(1,1,21)],
     vowels[runif(1,1,5)],
-    consanants[runif(1,1,21)]
+    consonants[runif(1,1,21)]
   )
   return(iname)
 }
@@ -318,35 +321,39 @@ ui <- fluidPage(theme = shinytheme("cyborg"),
                     ####Mapping Preview####
                     HTML("<h3>Mapping Preview</h3>"),
                     fluidRow(
-                      column(uiOutput("instrumentName"),
-                             tableOutput("mappingDFpreview"),
-                             width = 6),
-                      column(textInput("instrumentName",
-                                       "Name your instrument",
-                                       value = "my sample instrument",
-                                       width = NULL,
-                                       placeholder = NULL),
-                             actionButton("useName",
-                                          "Use this instrument name",
-                                          width = 300),
-                             actionButton("createName",
-                                          "or, create a random instrument name",
-                                          width = 300),
-                             hr(),
-                             actionButton("automapper",
-                                          "AutoMapDown",
-                                          width = 300),
-                             hr(),
-                             uiOutput("manualEditDropdown"),
-                             img(src="88keys_wiki.png",height=28),
-                             uiOutput("mappingSlider"),
-                             uiOutput("updateButton"),
-                             hr(),
-                             width = 6)
+                      conditionalPanel("output.wavplot",
+                                       column(
+                                         uiOutput("instrumentName"),
+                                         tableOutput("mappingDFpreview"),
+                                         actionButton("viewFinal",
+                                                      "View and Save SFZ file",
+                                                      width = 300),
+                                         width = 6),
+                                       column(textInput("instrumentName",
+                                                        "Name your instrument",
+                                                        value = "my sample instrument",
+                                                        width = NULL,
+                                                        placeholder = NULL),
+                                              actionButton("useName",
+                                                           "Use this instrument name",
+                                                           width = 300),
+                                              actionButton("createName",
+                                                           "or, create a random instrument name",
+                                                           width = 300),
+                                              hr(),
+                                              actionButton("automapper",
+                                                           "AutoMapDown",
+                                                           width = 300),
+                                              hr(),
+                                              uiOutput("manualEditDropdown"),
+                                              img(src="88keys_wiki.png",height=28),
+                                              uiOutput("mappingSlider"),
+                                              uiOutput("updateButton"),
+                                              hr(),
+                                              width = 6)
+                      ),
+                      
                     ),
-                    actionButton("viewFinal",
-                                 "View and Save SFZ file",
-                                 width = 300),
                     hr()
                   )
                 )
@@ -920,8 +927,9 @@ server <- function(input, output) {
       # ),
       hr(),
       verbatimTextOutput("macroSFZoutput"),
-      downloadButton("downloadMacroSFZ",
-                     label = "Download sfz file"),
+      HTML("<h4>Use Mapping Preview section to edit instrument</h4>"),
+      # downloadButton("downloadMacroSFZ",
+      #                label = "Download sfz file"),
       size = "l",
       easyClose = TRUE,
       footer = tagList(
@@ -1099,7 +1107,7 @@ server <- function(input, output) {
       selected = NULL,
       multiple = FALSE,
       selectize = TRUE,
-      width = 400,
+      width = 300,
       size = NULL
     )
   })
@@ -1164,7 +1172,7 @@ server <- function(input, output) {
     selectInput(
       inputId = "bitDepth",
       label = "Output Bit-depth",
-      choices = c("16","8"),
+      choices = c("16","8","1"),
       selected = "16",
       multiple = FALSE,
       selectize = TRUE,
